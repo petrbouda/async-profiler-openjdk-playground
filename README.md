@@ -2,7 +2,10 @@
 
 - C++ Symbols - [Name Mangling](https://en.wikipedia.org/wiki/Name_mangling)
 - Docker Image with Debug symbols - https://github.com/petrbouda/openjdk-x-dbg-asyncprofiler
-- https://www.pingtimeout.fr/posts/2020-02-16-more-humongous-allocations-tracing/
+
+### IDE Setup
+
+- [CLion](https://blog.jetbrains.com/clion/2020/03/openjdk-with-clion/)
 
 ### External Debug Symbols
 
@@ -16,7 +19,10 @@ Binary file ./eb/180e47f20c56d564b6064be501f0f46c7e0ffe.debug matches
 $ nm -an ./eb/180e47f20c56d564b6064be501f0f46c7e0ffe.debug | c++filt 
 ```
 
-### Some settings 
+![SYMBOLS_MANGLING](symbols_mangling.png)
+- https://www.pingtimeout.fr/posts/2020-02-16-more-humongous-allocations-tracing/
+
+### Linux Setup
 
 - to allow linux perf
 
