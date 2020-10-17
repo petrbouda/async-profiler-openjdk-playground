@@ -53,3 +53,24 @@ docker exec -ti humalloc profiler.sh -e G1CollectedHeap::humongous_obj_allocate 
 ```
 
 ![HUMONGOUS_ALLOCATION](humongous_allocation.svg)
+
+### Heap Dumper Tracker
+
+```
+# Create Async-Profiler folder in temp and copy the program
+mkdir /tmp/asyncprofiler && cp src/main/java/pbouda/asyncprofiler/openjdk/HeapDumper.java /tmp/asyncprofiler/HeapDumper.java
+
+# Start the program and wait for profiler
+docker run --rm -it --name heapdumper --security-opt seccomp=unconfined \
+-v /tmp/asyncprofiler:/tmp/asyncprofiler openjdk-15-dbg-asyncprofiler:latest java /tmp/asyncprofiler/HeapDumper.java
+
+# Attach the profiler
+docker exec -ti heapdumper profiler.sh -e HeapDumper::dump -f /tmp/asyncprofiler/heapdumper.svg 1
+
+# Create a heapdump using JCMD console
+docker exec -ti heapdumper /usr/lib/jvm/jdk-15+36/bin/jcmd 1 GC.heap_dump filename=/tmp/dump.hprof
+
+# Press enter in the application console to trigger the heap dump from the application
+```
+
+![HEAP_DUMP](heapdumper.svg)
