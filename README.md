@@ -12,6 +12,7 @@
 - stored externally from an executable file using a build ID 
 - https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html
 
+- try this out inside a container - `openjdk-x-dbg-asyncprofiler`
 ```
 $ cd /usr/lib/debug/.build-id
 $ grep -r "_ZN15G1CollectedHeap22humongous_obj_allocateEm" .
