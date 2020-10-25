@@ -29,6 +29,7 @@ public class AllocationTracker {
 
 
     // -Xmx256m -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC
+    // -Xmx256m -XX:+UseSerialGC
     public static void main(String[] args) throws InterruptedException, IOException {
         System.out.println("Memory Allocator Started: PID: " + ProcessHandle.current().pid());
         System.in.read();
