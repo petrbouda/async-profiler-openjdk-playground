@@ -1,0 +1,1041 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" width="1200" height="710" onload="init(evt)" viewBox="0 0 1200 710" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<style type="text/css">
+	text { font-family:Verdana; font-size:12px; fill:rgb(0,0,0); }
+	#search { opacity:0.1; cursor:pointer; }
+	#search:hover, #search.show { opacity:1; }
+	#subtitle { text-anchor:middle; font-color:rgb(160,160,160); }
+	#title { text-anchor:middle; font-size:17px}
+	#unzoom { cursor:pointer; }
+	#frames > *:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+	.hide { display:none; }
+	.parent { opacity:0.5; }
+</style>
+<script type="text/ecmascript">
+<![CDATA[
+	"use strict";
+	var details, searchbtn, unzoombtn, matchedtxt, svg, searching;
+	function init(evt) {
+		details = document.getElementById("details").firstChild;
+		searchbtn = document.getElementById("search");
+		unzoombtn = document.getElementById("unzoom");
+		matchedtxt = document.getElementById("matched");
+		svg = document.getElementsByTagName("svg")[0];
+		searching = 0;
+	}
+
+	window.addEventListener("click", function(e) {
+		var target = find_group(e.target);
+		if (target) {
+			if (target.nodeName == "a") {
+				if (e.ctrlKey === false) return;
+				e.preventDefault();
+			}
+			if (target.classList.contains("parent")) unzoom();
+			zoom(target);
+		}
+		else if (e.target.id == "unzoom") unzoom();
+		else if (e.target.id == "search") search_prompt();
+	}, false)
+
+	// mouse-over for info
+	// show
+	window.addEventListener("mouseover", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = "Function: " + g_to_text(target);
+	}, false)
+
+	// clear
+	window.addEventListener("mouseout", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = ' ';
+	}, false)
+
+	// ctrl-F for search
+	window.addEventListener("keydown",function (e) {
+		if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
+			e.preventDefault();
+			search_prompt();
+		}
+	}, false)
+
+	// functions
+	function find_child(node, selector) {
+		var children = node.querySelectorAll(selector);
+		if (children.length) return children[0];
+		return;
+	}
+	function find_group(node) {
+		var parent = node.parentElement;
+		if (!parent) return;
+		if (parent.id == "frames") return node;
+		return find_group(parent);
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_" + attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_" + attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_" + attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function g_to_text(e) {
+		var text = find_child(e, "title").firstChild.nodeValue;
+		return (text)
+	}
+	function g_to_func(e) {
+		var func = g_to_text(e);
+		// if there's any manipulation we want to do to the function
+		// name before it's searched, do it here before returning.
+		return (func);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes.width.value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+		t.attributes.x.value = parseFloat(r.attributes.x.value) + 3;
+
+		// Smaller than this size won't fit anything
+		if (w < 2 * 12 * 0.59) {
+			t.textContent = "";
+			return;
+		}
+
+		t.textContent = txt;
+		// Fit in full text width
+		if (/^ *$/.test(txt) || t.getSubStringLength(0, txt.length) < w)
+			return;
+
+		for (var x = txt.length - 2; x > 0; x--) {
+			if (t.getSubStringLength(0, x + 2) <= w) {
+				t.textContent = txt.substring(0, x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+
+	// zoom
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = (parseFloat(e.attributes.x.value) - x - 10) * ratio + 10;
+				if (e.tagName == "text")
+					e.attributes.x.value = find_child(e.parentNode, "rect[x]").attributes.x.value + 3;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseFloat(e.attributes.width.value) * ratio;
+			}
+		}
+
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_child(c[i], x - 10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = 10;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseInt(svg.width.baseVal.value) - (10 * 2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) {
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr.width.value);
+		var xmin = parseFloat(attr.x.value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr.y.value);
+		var ratio = (svg.width.baseVal.value - 2 * 10) / width;
+
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+
+		unzoombtn.classList.remove("hide");
+
+		var el = document.getElementById("frames").children;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a.x.value);
+			var ew = parseFloat(a.width.value);
+			var upstack;
+			// Is it an ancestor
+			if (0 == 0) {
+				upstack = parseFloat(a.y.value) > ymin;
+			} else {
+				upstack = parseFloat(a.y.value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.classList.add("parent");
+					zoom_parent(e);
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.classList.add("hide");
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.classList.add("hide");
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					update_text(e);
+				}
+			}
+		}
+	}
+	function unzoom() {
+		unzoombtn.classList.add("hide");
+		var el = document.getElementById("frames").children;
+		for(var i = 0; i < el.length; i++) {
+			el[i].classList.remove("parent");
+			el[i].classList.remove("hide");
+			zoom_reset(el[i]);
+			update_text(el[i]);
+		}
+	}
+
+	// search
+	function reset_search() {
+		var el = document.querySelectorAll("#frames rect");
+		for (var i = 0; i < el.length; i++) {
+			orig_load(el[i], "fill")
+		}
+	}
+	function search_prompt() {
+		if (!searching) {
+			var term = prompt("Enter a search term (regexp " +
+			    "allowed, eg: ^ext4_)", "");
+			if (term != null) {
+				search(term)
+			}
+		} else {
+			reset_search();
+			searching = 0;
+			searchbtn.classList.remove("show");
+			searchbtn.firstChild.nodeValue = "Search"
+			matchedtxt.classList.add("hide");
+			matchedtxt.firstChild.nodeValue = ""
+		}
+	}
+	function search(term) {
+		var re = new RegExp(term);
+		var el = document.getElementById("frames").children;
+		var matches = new Object();
+		var maxwidth = 0;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var func = g_to_func(e);
+			var rect = find_child(e, "rect");
+			if (func == null || rect == null)
+				continue;
+
+			// Save max width. Only works as we have a root frame
+			var w = parseFloat(rect.attributes.width.value);
+			if (w > maxwidth)
+				maxwidth = w;
+
+			if (func.match(re)) {
+				// highlight
+				var x = parseFloat(rect.attributes.x.value);
+				orig_save(rect, "fill");
+				rect.attributes.fill.value = "rgb(230,0,230)";
+
+				// remember matches
+				if (matches[x] == undefined) {
+					matches[x] = w;
+				} else {
+					if (w > matches[x]) {
+						// overwrite with parent
+						matches[x] = w;
+					}
+				}
+				searching = 1;
+			}
+		}
+		if (!searching)
+			return;
+
+		searchbtn.classList.add("show");
+		searchbtn.firstChild.nodeValue = "Reset Search";
+
+		// calculate percent matched, excluding vertical overlap
+		var count = 0;
+		var lastx = -1;
+		var lastw = 0;
+		var keys = Array();
+		for (k in matches) {
+			if (matches.hasOwnProperty(k))
+				keys.push(k);
+		}
+		// sort the matched frames by their x location
+		// ascending, then width descending
+		keys.sort(function(a, b){
+			return a - b;
+		});
+		// Step through frames saving only the biggest bottom-up frames
+		// thanks to the sort order. This relies on the tree property
+		// where children are always smaller than their parents.
+		var fudge = 0.0001;	// JavaScript floating point
+		for (var k in keys) {
+			var x = parseFloat(keys[k]);
+			var w = matches[keys[k]];
+			if (x >= lastx + lastw - fudge) {
+				count += w;
+				lastx = x;
+				lastw = w;
+			}
+		}
+		// display matched percent
+		matchedtxt.classList.remove("hide");
+		var pct = 100 * count / maxwidth;
+		if (pct != 100) pct = pct.toFixed(1)
+		matchedtxt.firstChild.nodeValue = "Matched: " + pct + "%";
+	}
+]]>
+</script>
+<rect x="0" y="0" width="100%" height="100%" fill="rgb(240,240,220)"/>
+<text id="title" x="600" y="24">Flame Graph</text>
+<text id="details" x="10" y="693"> </text>
+<text id="unzoom" x="10" y="24" class="hide">Reset Zoom</text>
+<text id="search" x="1090" y="24">Search</text>
+<text id="matched" x="1090" y="693"> </text>
+<g id="frames">
+<g>
+<title>all (262 samples, 100.00%)</title><rect x="10.0" y="659.0" width="1180.0" height="15" fill="#fa7b7b" rx="2" ry="2"/>
+<text x="13.0" y="670.0">all</text>
+</g>
+<g>
+<title>[Attach Listener tid=28] (1 samples, 0.38%)</title><rect x="10.0" y="643.0" width="4.5" height="15" fill="#ec6969" rx="2" ry="2"/>
+<text x="13.0" y="654.0"></text>
+</g>
+<g>
+<title>start_thread (1 samples, 0.38%)</title><rect x="10.0" y="627.0" width="4.5" height="15" fill="#f87979" rx="2" ry="2"/>
+<text x="13.0" y="638.0"></text>
+</g>
+<g>
+<title>thread_native_entry(Thread*) (1 samples, 0.38%)</title><rect x="10.0" y="611.0" width="4.5" height="15" fill="#f87979" rx="2" ry="2"/>
+<text x="13.0" y="622.0"></text>
+</g>
+<g>
+<title>Thread::call_run() (1 samples, 0.38%)</title><rect x="10.0" y="595.0" width="4.5" height="15" fill="#e3e345" rx="2" ry="2"/>
+<text x="13.0" y="606.0"></text>
+</g>
+<g>
+<title>JavaThread::thread_main_inner() (1 samples, 0.38%)</title><rect x="10.0" y="579.0" width="4.5" height="15" fill="#cdcd3d" rx="2" ry="2"/>
+<text x="13.0" y="590.0"></text>
+</g>
+<g>
+<title>attach_listener_thread_entry(JavaThread*, Thread*) (1 samples, 0.38%)</title><rect x="10.0" y="563.0" width="4.5" height="15" fill="#eb6767" rx="2" ry="2"/>
+<text x="13.0" y="574.0"></text>
+</g>
+<g>
+<title>JvmtiExport::load_agent_library(char const*, char const*, char const*, outputStream*) (1 samples, 0.38%)</title><rect x="10.0" y="547.0" width="4.5" height="15" fill="#dfdf43" rx="2" ry="2"/>
+<text x="13.0" y="558.0"></text>
+</g>
+<g>
+<title>Agent_OnAttach (1 samples, 0.38%)</title><rect x="10.0" y="531.0" width="4.5" height="15" fill="#e96565" rx="2" ry="2"/>
+<text x="13.0" y="542.0"></text>
+</g>
+<g>
+<title>Profiler::run(Arguments&amp;) (1 samples, 0.38%)</title><rect x="10.0" y="515.0" width="4.5" height="15" fill="#d8d841" rx="2" ry="2"/>
+<text x="13.0" y="526.0"></text>
+</g>
+<g>
+<title>Profiler::runInternal(Arguments&amp;, std::ostream&amp;) (1 samples, 0.38%)</title><rect x="10.0" y="499.0" width="4.5" height="15" fill="#d6d640" rx="2" ry="2"/>
+<text x="13.0" y="510.0"></text>
+</g>
+<g>
+<title>Profiler::start(Arguments&amp;, bool) (1 samples, 0.38%)</title><rect x="10.0" y="483.0" width="4.5" height="15" fill="#dada42" rx="2" ry="2"/>
+<text x="13.0" y="494.0"></text>
+</g>
+<g>
+<title>Profiler::switchNativeMethodTraps(bool) (1 samples, 0.38%)</title><rect x="10.0" y="467.0" width="4.5" height="15" fill="#d2d23f" rx="2" ry="2"/>
+<text x="13.0" y="478.0"></text>
+</g>
+<g>
+<title>Profiler::bindNativeLibraryLoad(JNIEnv_*, unsigned char (*)(JNIEnv_*, _jobject*, _jstring*, unsigned char)) (1 samples, 0.38%)</title><rect x="10.0" y="451.0" width="4.5" height="15" fill="#d7d741" rx="2" ry="2"/>
+<text x="13.0" y="462.0"></text>
+</g>
+<g>
+<title>jni_FindClass (1 samples, 0.38%)</title><rect x="10.0" y="435.0" width="4.5" height="15" fill="#fd8080" rx="2" ry="2"/>
+<text x="13.0" y="446.0"></text>
+</g>
+<g>
+<title>find_class_from_class_loader(JNIEnv_*, Symbol*, unsigned char, Handle, Handle, unsigned char, Thread*) (1 samples, 0.38%)</title><rect x="10.0" y="419.0" width="4.5" height="15" fill="#fc7e7e" rx="2" ry="2"/>
+<text x="13.0" y="430.0"></text>
+</g>
+<g>
+<title>SystemDictionary::resolve_or_fail(Symbol*, Handle, Handle, bool, Thread*) (1 samples, 0.38%)</title><rect x="10.0" y="403.0" width="4.5" height="15" fill="#dbdb42" rx="2" ry="2"/>
+<text x="13.0" y="414.0"></text>
+</g>
+<g>
+<title>SystemDictionary::resolve_instance_class_or_null(Symbol*, Handle, Handle, Thread*) (1 samples, 0.38%)</title><rect x="10.0" y="387.0" width="4.5" height="15" fill="#dddd43" rx="2" ry="2"/>
+<text x="13.0" y="398.0"></text>
+</g>
+<g>
+<title>SystemDictionary::load_instance_class(Symbol*, Handle, Thread*) (1 samples, 0.38%)</title><rect x="10.0" y="371.0" width="4.5" height="15" fill="#cccc3d" rx="2" ry="2"/>
+<text x="13.0" y="382.0"></text>
+</g>
+<g>
+<title>java_lang_String::create_from_symbol(Symbol*, Thread*) (1 samples, 0.38%)</title><rect x="10.0" y="355.0" width="4.5" height="15" fill="#dada42" rx="2" ry="2"/>
+<text x="13.0" y="366.0"></text>
+</g>
+<g>
+<title>InstanceKlass::allocate_instance(Thread*) (1 samples, 0.38%)</title><rect x="10.0" y="339.0" width="4.5" height="15" fill="#c8c83c" rx="2" ry="2"/>
+<text x="13.0" y="350.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate() const (1 samples, 0.38%)</title><rect x="10.0" y="323.0" width="4.5" height="15" fill="#cfcf3e" rx="2" ry="2"/>
+<text x="13.0" y="334.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate_inside_tlab_slow(MemAllocator::Allocation&amp;) const (1 samples, 0.38%)</title><rect x="10.0" y="307.0" width="4.5" height="15" fill="#cccc3d" rx="2" ry="2"/>
+<text x="13.0" y="318.0"></text>
+</g>
+<g>
+<title>GenCollectedHeap::mem_allocate_work(unsigned long, bool, bool*) (1 samples, 0.38%)</title><rect x="10.0" y="291.0" width="4.5" height="15" fill="#e0e044" rx="2" ry="2"/>
+<text x="13.0" y="302.0"></text>
+</g>
+<g>
+<title>[C1 CompilerThre tid=13] (1 samples, 0.38%)</title><rect x="14.5" y="643.0" width="4.5" height="15" fill="#e56060" rx="2" ry="2"/>
+<text x="17.5" y="654.0"></text>
+</g>
+<g>
+<title>start_thread (1 samples, 0.38%)</title><rect x="14.5" y="627.0" width="4.5" height="15" fill="#ed6a6a" rx="2" ry="2"/>
+<text x="17.5" y="638.0"></text>
+</g>
+<g>
+<title>thread_native_entry(Thread*) (1 samples, 0.38%)</title><rect x="14.5" y="611.0" width="4.5" height="15" fill="#e45f5f" rx="2" ry="2"/>
+<text x="17.5" y="622.0"></text>
+</g>
+<g>
+<title>Thread::call_run() (1 samples, 0.38%)</title><rect x="14.5" y="595.0" width="4.5" height="15" fill="#cbcb3d" rx="2" ry="2"/>
+<text x="17.5" y="606.0"></text>
+</g>
+<g>
+<title>JavaThread::thread_main_inner() (1 samples, 0.38%)</title><rect x="14.5" y="579.0" width="4.5" height="15" fill="#e5e545" rx="2" ry="2"/>
+<text x="17.5" y="590.0"></text>
+</g>
+<g>
+<title>CompileBroker::compiler_thread_loop() (1 samples, 0.38%)</title><rect x="14.5" y="563.0" width="4.5" height="15" fill="#cece3e" rx="2" ry="2"/>
+<text x="17.5" y="574.0"></text>
+</g>
+<g>
+<title>CompileBroker::invoke_compiler_on_method(CompileTask*) (1 samples, 0.38%)</title><rect x="14.5" y="547.0" width="4.5" height="15" fill="#d7d741" rx="2" ry="2"/>
+<text x="17.5" y="558.0"></text>
+</g>
+<g>
+<title>Compiler::compile_method(ciEnv*, ciMethod*, int, DirectiveSet*) (1 samples, 0.38%)</title><rect x="14.5" y="531.0" width="4.5" height="15" fill="#e1e144" rx="2" ry="2"/>
+<text x="17.5" y="542.0"></text>
+</g>
+<g>
+<title>Compilation::Compilation(AbstractCompiler*, ciEnv*, ciMethod*, int, BufferBlob*, DirectiveSet*) (1 samples, 0.38%)</title><rect x="14.5" y="515.0" width="4.5" height="15" fill="#dada42" rx="2" ry="2"/>
+<text x="17.5" y="526.0"></text>
+</g>
+<g>
+<title>Compilation::compile_method() (1 samples, 0.38%)</title><rect x="14.5" y="499.0" width="4.5" height="15" fill="#d0d03e" rx="2" ry="2"/>
+<text x="17.5" y="510.0"></text>
+</g>
+<g>
+<title>Compilation::compile_java_method() (1 samples, 0.38%)</title><rect x="14.5" y="483.0" width="4.5" height="15" fill="#dbdb42" rx="2" ry="2"/>
+<text x="17.5" y="494.0"></text>
+</g>
+<g>
+<title>Compilation::build_hir() [clone .part.0] (1 samples, 0.38%)</title><rect x="14.5" y="467.0" width="4.5" height="15" fill="#d7d741" rx="2" ry="2"/>
+<text x="17.5" y="478.0"></text>
+</g>
+<g>
+<title>IR::IR(Compilation*, ciMethod*, int) (1 samples, 0.38%)</title><rect x="14.5" y="451.0" width="4.5" height="15" fill="#d6d640" rx="2" ry="2"/>
+<text x="17.5" y="462.0"></text>
+</g>
+<g>
+<title>IRScope::IRScope(Compilation*, IRScope*, int, ciMethod*, int, bool) (1 samples, 0.38%)</title><rect x="14.5" y="435.0" width="4.5" height="15" fill="#e5e545" rx="2" ry="2"/>
+<text x="17.5" y="446.0"></text>
+</g>
+<g>
+<title>GraphBuilder::GraphBuilder(Compilation*, IRScope*) (1 samples, 0.38%)</title><rect x="14.5" y="419.0" width="4.5" height="15" fill="#d0d03e" rx="2" ry="2"/>
+<text x="17.5" y="430.0"></text>
+</g>
+<g>
+<title>GraphBuilder::iterate_all_blocks(bool) (1 samples, 0.38%)</title><rect x="14.5" y="403.0" width="4.5" height="15" fill="#dfdf43" rx="2" ry="2"/>
+<text x="17.5" y="414.0"></text>
+</g>
+<g>
+<title>GraphBuilder::iterate_bytecodes_for_block(int) (1 samples, 0.38%)</title><rect x="14.5" y="387.0" width="4.5" height="15" fill="#d7d741" rx="2" ry="2"/>
+<text x="17.5" y="398.0"></text>
+</g>
+<g>
+<title>GraphBuilder::load_constant() (1 samples, 0.38%)</title><rect x="14.5" y="371.0" width="4.5" height="15" fill="#dfdf43" rx="2" ry="2"/>
+<text x="17.5" y="382.0"></text>
+</g>
+<g>
+<title>ciBytecodeStream::get_constant() (1 samples, 0.38%)</title><rect x="14.5" y="355.0" width="4.5" height="15" fill="#d4d440" rx="2" ry="2"/>
+<text x="17.5" y="366.0"></text>
+</g>
+<g>
+<title>ciEnv::get_constant_by_index_impl(constantPoolHandle const&amp;, int, int, ciInstanceKlass*) (1 samples, 0.38%)</title><rect x="14.5" y="339.0" width="4.5" height="15" fill="#e2e244" rx="2" ry="2"/>
+<text x="17.5" y="350.0"></text>
+</g>
+<g>
+<title>ConstantPool::string_at_impl(constantPoolHandle const&amp;, int, int, Thread*) (1 samples, 0.38%)</title><rect x="14.5" y="323.0" width="4.5" height="15" fill="#d0d03e" rx="2" ry="2"/>
+<text x="17.5" y="334.0"></text>
+</g>
+<g>
+<title>StringTable::intern(Symbol*, Thread*) (1 samples, 0.38%)</title><rect x="14.5" y="307.0" width="4.5" height="15" fill="#d2d23f" rx="2" ry="2"/>
+<text x="17.5" y="318.0"></text>
+</g>
+<g>
+<title>StringTable::do_intern(Handle, unsigned short const*, int, unsigned long, Thread*) (1 samples, 0.38%)</title><rect x="14.5" y="291.0" width="4.5" height="15" fill="#e0e044" rx="2" ry="2"/>
+<text x="17.5" y="302.0"></text>
+</g>
+<g>
+<title>java_lang_String::create_from_unicode(unsigned short const*, int, Thread*) (1 samples, 0.38%)</title><rect x="14.5" y="275.0" width="4.5" height="15" fill="#e3e345" rx="2" ry="2"/>
+<text x="17.5" y="286.0"></text>
+</g>
+<g>
+<title>InstanceKlass::allocate_instance(Thread*) (1 samples, 0.38%)</title><rect x="14.5" y="259.0" width="4.5" height="15" fill="#caca3c" rx="2" ry="2"/>
+<text x="17.5" y="270.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate() const (1 samples, 0.38%)</title><rect x="14.5" y="243.0" width="4.5" height="15" fill="#e4e445" rx="2" ry="2"/>
+<text x="17.5" y="254.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate_inside_tlab_slow(MemAllocator::Allocation&amp;) const (1 samples, 0.38%)</title><rect x="14.5" y="227.0" width="4.5" height="15" fill="#d7d741" rx="2" ry="2"/>
+<text x="17.5" y="238.0"></text>
+</g>
+<g>
+<title>GenCollectedHeap::mem_allocate_work(unsigned long, bool, bool*) (1 samples, 0.38%)</title><rect x="14.5" y="211.0" width="4.5" height="15" fill="#caca3c" rx="2" ry="2"/>
+<text x="17.5" y="222.0"></text>
+</g>
+<g>
+<title>[SIGINT handler tid=45] (1 samples, 0.38%)</title><rect x="19.0" y="643.0" width="4.5" height="15" fill="#e66161" rx="2" ry="2"/>
+<text x="22.0" y="654.0"></text>
+</g>
+<g>
+<title>java/lang/Thread.run (1 samples, 0.38%)</title><rect x="19.0" y="627.0" width="4.5" height="15" fill="#63f463" rx="2" ry="2"/>
+<text x="22.0" y="638.0"></text>
+</g>
+<g>
+<title>jdk/internal/misc/Signal$1.run (1 samples, 0.38%)</title><rect x="19.0" y="611.0" width="4.5" height="15" fill="#6afb6a" rx="2" ry="2"/>
+<text x="22.0" y="622.0"></text>
+</g>
+<g>
+<title>java/lang/Terminator$1.handle (1 samples, 0.38%)</title><rect x="19.0" y="595.0" width="4.5" height="15" fill="#5aeb5a" rx="2" ry="2"/>
+<text x="22.0" y="606.0"></text>
+</g>
+<g>
+<title>InterpreterRuntime::resolve_from_cache(JavaThread*, Bytecodes::Code) (1 samples, 0.38%)</title><rect x="19.0" y="579.0" width="4.5" height="15" fill="#c9c93c" rx="2" ry="2"/>
+<text x="22.0" y="590.0"></text>
+</g>
+<g>
+<title>InterpreterRuntime::resolve_invoke(JavaThread*, Bytecodes::Code) (1 samples, 0.38%)</title><rect x="19.0" y="563.0" width="4.5" height="15" fill="#c8c83c" rx="2" ry="2"/>
+<text x="22.0" y="574.0"></text>
+</g>
+<g>
+<title>LinkResolver::resolve_invoke(CallInfo&amp;, Handle, constantPoolHandle const&amp;, int, Bytecodes::Code, Thread*) (1 samples, 0.38%)</title><rect x="19.0" y="547.0" width="4.5" height="15" fill="#d5d540" rx="2" ry="2"/>
+<text x="22.0" y="558.0"></text>
+</g>
+<g>
+<title>LinkInfo::LinkInfo(constantPoolHandle const&amp;, int, Thread*) (1 samples, 0.38%)</title><rect x="19.0" y="531.0" width="4.5" height="15" fill="#c9c93c" rx="2" ry="2"/>
+<text x="22.0" y="542.0"></text>
+</g>
+<g>
+<title>ConstantPool::klass_ref_at(int, Thread*) (1 samples, 0.38%)</title><rect x="19.0" y="515.0" width="4.5" height="15" fill="#cfcf3e" rx="2" ry="2"/>
+<text x="22.0" y="526.0"></text>
+</g>
+<g>
+<title>SystemDictionary::resolve_or_fail(Symbol*, Handle, Handle, bool, Thread*) (1 samples, 0.38%)</title><rect x="19.0" y="499.0" width="4.5" height="15" fill="#e5e545" rx="2" ry="2"/>
+<text x="22.0" y="510.0"></text>
+</g>
+<g>
+<title>SystemDictionary::resolve_instance_class_or_null(Symbol*, Handle, Handle, Thread*) (1 samples, 0.38%)</title><rect x="19.0" y="483.0" width="4.5" height="15" fill="#e3e345" rx="2" ry="2"/>
+<text x="22.0" y="494.0"></text>
+</g>
+<g>
+<title>SystemDictionary::load_instance_class(Symbol*, Handle, Thread*) (1 samples, 0.38%)</title><rect x="19.0" y="467.0" width="4.5" height="15" fill="#e1e144" rx="2" ry="2"/>
+<text x="22.0" y="478.0"></text>
+</g>
+<g>
+<title>SystemDictionary::load_shared_class(InstanceKlass*, Handle, Handle, ClassFileStream const*, PackageEntry*, Thread*) (1 samples, 0.38%)</title><rect x="19.0" y="451.0" width="4.5" height="15" fill="#cfcf3e" rx="2" ry="2"/>
+<text x="22.0" y="462.0"></text>
+</g>
+<g>
+<title>InstanceKlass::restore_unshareable_info(ClassLoaderData*, Handle, PackageEntry*, Thread*) (1 samples, 0.38%)</title><rect x="19.0" y="435.0" width="4.5" height="15" fill="#d8d841" rx="2" ry="2"/>
+<text x="22.0" y="446.0"></text>
+</g>
+<g>
+<title>Klass::restore_unshareable_info(ClassLoaderData*, Handle, Thread*) (1 samples, 0.38%)</title><rect x="19.0" y="419.0" width="4.5" height="15" fill="#d3d33f" rx="2" ry="2"/>
+<text x="22.0" y="430.0"></text>
+</g>
+<g>
+<title>java_lang_Class::create_mirror(Klass*, Handle, Handle, Handle, Handle, Thread*) (1 samples, 0.38%)</title><rect x="19.0" y="403.0" width="4.5" height="15" fill="#dede43" rx="2" ry="2"/>
+<text x="22.0" y="414.0"></text>
+</g>
+<g>
+<title>InstanceMirrorKlass::allocate_instance(Klass*, Thread*) (1 samples, 0.38%)</title><rect x="19.0" y="387.0" width="4.5" height="15" fill="#d7d741" rx="2" ry="2"/>
+<text x="22.0" y="398.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate() const (1 samples, 0.38%)</title><rect x="19.0" y="371.0" width="4.5" height="15" fill="#dcdc42" rx="2" ry="2"/>
+<text x="22.0" y="382.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate_inside_tlab_slow(MemAllocator::Allocation&amp;) const (1 samples, 0.38%)</title><rect x="19.0" y="355.0" width="4.5" height="15" fill="#d7d741" rx="2" ry="2"/>
+<text x="22.0" y="366.0"></text>
+</g>
+<g>
+<title>GenCollectedHeap::mem_allocate_work(unsigned long, bool, bool*) (1 samples, 0.38%)</title><rect x="19.0" y="339.0" width="4.5" height="15" fill="#c9c93c" rx="2" ry="2"/>
+<text x="22.0" y="350.0"></text>
+</g>
+<g>
+<title>[Signal Dispatcher tid=10] (1 samples, 0.38%)</title><rect x="23.5" y="643.0" width="4.5" height="15" fill="#ee6b6b" rx="2" ry="2"/>
+<text x="26.5" y="654.0"></text>
+</g>
+<g>
+<title>jdk/internal/misc/Signal.dispatch (1 samples, 0.38%)</title><rect x="23.5" y="627.0" width="4.5" height="15" fill="#6bfc6b" rx="2" ry="2"/>
+<text x="26.5" y="638.0"></text>
+</g>
+<g>
+<title>InterpreterRuntime::_new(JavaThread*, ConstantPool*, int) (1 samples, 0.38%)</title><rect x="23.5" y="611.0" width="4.5" height="15" fill="#e3e345" rx="2" ry="2"/>
+<text x="26.5" y="622.0"></text>
+</g>
+<g>
+<title>ConstantPool::klass_at_impl(constantPoolHandle const&amp;, int, bool, Thread*) (1 samples, 0.38%)</title><rect x="23.5" y="595.0" width="4.5" height="15" fill="#dddd43" rx="2" ry="2"/>
+<text x="26.5" y="606.0"></text>
+</g>
+<g>
+<title>SystemDictionary::resolve_or_fail(Symbol*, Handle, Handle, bool, Thread*) (1 samples, 0.38%)</title><rect x="23.5" y="579.0" width="4.5" height="15" fill="#d0d03e" rx="2" ry="2"/>
+<text x="26.5" y="590.0"></text>
+</g>
+<g>
+<title>SystemDictionary::resolve_instance_class_or_null(Symbol*, Handle, Handle, Thread*) (1 samples, 0.38%)</title><rect x="23.5" y="563.0" width="4.5" height="15" fill="#dede43" rx="2" ry="2"/>
+<text x="26.5" y="574.0"></text>
+</g>
+<g>
+<title>SystemDictionary::load_instance_class(Symbol*, Handle, Thread*) (1 samples, 0.38%)</title><rect x="23.5" y="547.0" width="4.5" height="15" fill="#dbdb42" rx="2" ry="2"/>
+<text x="26.5" y="558.0"></text>
+</g>
+<g>
+<title>ClassLoader::load_class(Symbol*, bool, Thread*) (1 samples, 0.38%)</title><rect x="23.5" y="531.0" width="4.5" height="15" fill="#d2d23f" rx="2" ry="2"/>
+<text x="26.5" y="542.0"></text>
+</g>
+<g>
+<title>KlassFactory::create_from_stream(ClassFileStream*, Symbol*, ClassLoaderData*, ClassLoadInfo const&amp;, Thread*) (1 samples, 0.38%)</title><rect x="23.5" y="515.0" width="4.5" height="15" fill="#dcdc42" rx="2" ry="2"/>
+<text x="26.5" y="526.0"></text>
+</g>
+<g>
+<title>ClassFileParser::create_instance_klass(bool, ClassInstanceInfo const&amp;, Thread*) (1 samples, 0.38%)</title><rect x="23.5" y="499.0" width="4.5" height="15" fill="#cccc3d" rx="2" ry="2"/>
+<text x="26.5" y="510.0"></text>
+</g>
+<g>
+<title>ClassFileParser::fill_instance_klass(InstanceKlass*, bool, ClassInstanceInfo const&amp;, Thread*) (1 samples, 0.38%)</title><rect x="23.5" y="483.0" width="4.5" height="15" fill="#d5d540" rx="2" ry="2"/>
+<text x="26.5" y="494.0"></text>
+</g>
+<g>
+<title>java_lang_Class::create_mirror(Klass*, Handle, Handle, Handle, Handle, Thread*) (1 samples, 0.38%)</title><rect x="23.5" y="467.0" width="4.5" height="15" fill="#e2e244" rx="2" ry="2"/>
+<text x="26.5" y="478.0"></text>
+</g>
+<g>
+<title>InstanceMirrorKlass::allocate_instance(Klass*, Thread*) (1 samples, 0.38%)</title><rect x="23.5" y="451.0" width="4.5" height="15" fill="#e0e044" rx="2" ry="2"/>
+<text x="26.5" y="462.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate() const (1 samples, 0.38%)</title><rect x="23.5" y="435.0" width="4.5" height="15" fill="#d1d13f" rx="2" ry="2"/>
+<text x="26.5" y="446.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate_inside_tlab_slow(MemAllocator::Allocation&amp;) const (1 samples, 0.38%)</title><rect x="23.5" y="419.0" width="4.5" height="15" fill="#cece3e" rx="2" ry="2"/>
+<text x="26.5" y="430.0"></text>
+</g>
+<g>
+<title>GenCollectedHeap::mem_allocate_work(unsigned long, bool, bool*) (1 samples, 0.38%)</title><rect x="23.5" y="403.0" width="4.5" height="15" fill="#e2e244" rx="2" ry="2"/>
+<text x="26.5" y="414.0"></text>
+</g>
+<g>
+<title>[main tid=6] (258 samples, 98.47%)</title><rect x="28.0" y="643.0" width="1162.0" height="15" fill="#eb6868" rx="2" ry="2"/>
+<text x="31.0" y="654.0">[main tid=6]</text>
+</g>
+<g>
+<title>com/sun/tools/javac/launcher/Main.main (258 samples, 98.47%)</title><rect x="28.0" y="627.0" width="1162.0" height="15" fill="#64f564" rx="2" ry="2"/>
+<text x="31.0" y="638.0">com/sun/tools/javac/launcher/Main.main</text>
+</g>
+<g>
+<title>com/sun/tools/javac/launcher/Main.run (258 samples, 98.47%)</title><rect x="28.0" y="611.0" width="1162.0" height="15" fill="#6cfd6c" rx="2" ry="2"/>
+<text x="31.0" y="622.0">com/sun/tools/javac/launcher/Main.run</text>
+</g>
+<g>
+<title>com/sun/tools/javac/launcher/Main.execute (258 samples, 98.47%)</title><rect x="28.0" y="595.0" width="1162.0" height="15" fill="#61f261" rx="2" ry="2"/>
+<text x="31.0" y="606.0">com/sun/tools/javac/launcher/Main.execute</text>
+</g>
+<g>
+<title>java/lang/reflect/Method.invoke (258 samples, 98.47%)</title><rect x="28.0" y="579.0" width="1162.0" height="15" fill="#63f463" rx="2" ry="2"/>
+<text x="31.0" y="590.0">java/lang/reflect/Method.invoke</text>
+</g>
+<g>
+<title>jdk/internal/reflect/DelegatingMethodAccessorImpl.invoke (258 samples, 98.47%)</title><rect x="28.0" y="563.0" width="1162.0" height="15" fill="#69fa69" rx="2" ry="2"/>
+<text x="31.0" y="574.0">jdk/internal/reflect/DelegatingMethodAccessorImpl.invoke</text>
+</g>
+<g>
+<title>jdk/internal/reflect/NativeMethodAccessorImpl.invoke (258 samples, 98.47%)</title><rect x="28.0" y="547.0" width="1162.0" height="15" fill="#5dee5d" rx="2" ry="2"/>
+<text x="31.0" y="558.0">jdk/internal/reflect/NativeMethodAccessorImpl.invoke</text>
+</g>
+<g>
+<title>jdk/internal/reflect/NativeMethodAccessorImpl.invoke0 (258 samples, 98.47%)</title><rect x="28.0" y="531.0" width="1162.0" height="15" fill="#6bfc6b" rx="2" ry="2"/>
+<text x="31.0" y="542.0">jdk/internal/reflect/NativeMethodAccessorImpl.invoke0</text>
+</g>
+<g>
+<title>pbouda/asyncprofiler/openjdk/AllocationTracker.main (258 samples, 98.47%)</title><rect x="28.0" y="515.0" width="1162.0" height="15" fill="#5bec5b" rx="2" ry="2"/>
+<text x="31.0" y="526.0">pbouda/asyncprofiler/openjdk/AllocationTracker.main</text>
+</g>
+<g>
+<title>java/lang/String.repeat (255 samples, 97.33%)</title><rect x="28.0" y="499.0" width="1148.5" height="15" fill="#68f968" rx="2" ry="2"/>
+<text x="31.0" y="510.0">java/lang/String.repeat</text>
+</g>
+<g>
+<title>InterpreterRuntime::_new(JavaThread*, ConstantPool*, int) (3 samples, 1.15%)</title><rect x="28.0" y="483.0" width="13.5" height="15" fill="#dcdc42" rx="2" ry="2"/>
+<text x="31.0" y="494.0"></text>
+</g>
+<g>
+<title>InstanceKlass::allocate_instance(Thread*) (3 samples, 1.15%)</title><rect x="28.0" y="467.0" width="13.5" height="15" fill="#e3e345" rx="2" ry="2"/>
+<text x="31.0" y="478.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate() const (3 samples, 1.15%)</title><rect x="28.0" y="451.0" width="13.5" height="15" fill="#d6d640" rx="2" ry="2"/>
+<text x="31.0" y="462.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate_inside_tlab_slow(MemAllocator::Allocation&amp;) const (3 samples, 1.15%)</title><rect x="28.0" y="435.0" width="13.5" height="15" fill="#cece3e" rx="2" ry="2"/>
+<text x="31.0" y="446.0"></text>
+</g>
+<g>
+<title>GenCollectedHeap::mem_allocate_work(unsigned long, bool, bool*) (3 samples, 1.15%)</title><rect x="28.0" y="419.0" width="13.5" height="15" fill="#e4e445" rx="2" ry="2"/>
+<text x="31.0" y="430.0"></text>
+</g>
+<g>
+<title>InterpreterRuntime::newarray(JavaThread*, BasicType, int) (221 samples, 84.35%)</title><rect x="41.5" y="483.0" width="995.4" height="15" fill="#e3e345" rx="2" ry="2"/>
+<text x="44.5" y="494.0">InterpreterRuntime::newarray(JavaThread*, BasicType, int)</text>
+</g>
+<g>
+<title>TypeArrayKlass::allocate_common(int, bool, Thread*) (221 samples, 84.35%)</title><rect x="41.5" y="467.0" width="995.4" height="15" fill="#cccc3d" rx="2" ry="2"/>
+<text x="44.5" y="478.0">TypeArrayKlass::allocate_common(int, bool, Thread*)</text>
+</g>
+<g>
+<title>GenCollectedHeap::mem_allocate_work(unsigned long, bool, bool*) (216 samples, 82.44%)</title><rect x="41.5" y="451.0" width="972.9" height="15" fill="#e2e244" rx="2" ry="2"/>
+<text x="44.5" y="462.0">GenCollectedHeap::mem_allocate_work(unsigned long, bool, bool*)</text>
+</g>
+<g>
+<title>MemAllocator::allocate() const (5 samples, 1.91%)</title><rect x="1014.4" y="451.0" width="22.5" height="15" fill="#dbdb42" rx="2" ry="2"/>
+<text x="1017.4" y="462.0">M..</text>
+</g>
+<g>
+<title>MemAllocator::allocate_inside_tlab_slow(MemAllocator::Allocation&amp;) const (5 samples, 1.91%)</title><rect x="1014.4" y="435.0" width="22.5" height="15" fill="#d4d440" rx="2" ry="2"/>
+<text x="1017.4" y="446.0">M..</text>
+</g>
+<g>
+<title>GenCollectedHeap::mem_allocate_work(unsigned long, bool, bool*) (5 samples, 1.91%)</title><rect x="1014.4" y="419.0" width="22.5" height="15" fill="#dada42" rx="2" ry="2"/>
+<text x="1017.4" y="430.0">G..</text>
+</g>
+<g>
+<title>Runtime1::new_instance(JavaThread*, Klass*) (1 samples, 0.38%)</title><rect x="1036.9" y="483.0" width="4.5" height="15" fill="#d0d03e" rx="2" ry="2"/>
+<text x="1039.9" y="494.0"></text>
+</g>
+<g>
+<title>InstanceKlass::allocate_instance(Thread*) (1 samples, 0.38%)</title><rect x="1036.9" y="467.0" width="4.5" height="15" fill="#dfdf43" rx="2" ry="2"/>
+<text x="1039.9" y="478.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate() const (1 samples, 0.38%)</title><rect x="1036.9" y="451.0" width="4.5" height="15" fill="#d1d13f" rx="2" ry="2"/>
+<text x="1039.9" y="462.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate_inside_tlab_slow(MemAllocator::Allocation&amp;) const (1 samples, 0.38%)</title><rect x="1036.9" y="435.0" width="4.5" height="15" fill="#d5d540" rx="2" ry="2"/>
+<text x="1039.9" y="446.0"></text>
+</g>
+<g>
+<title>GenCollectedHeap::mem_allocate_work(unsigned long, bool, bool*) (1 samples, 0.38%)</title><rect x="1036.9" y="419.0" width="4.5" height="15" fill="#cece3e" rx="2" ry="2"/>
+<text x="1039.9" y="430.0"></text>
+</g>
+<g>
+<title>Runtime1::new_type_array(JavaThread*, Klass*, int) (30 samples, 11.45%)</title><rect x="1041.4" y="483.0" width="135.1" height="15" fill="#cdcd3d" rx="2" ry="2"/>
+<text x="1044.4" y="494.0">Runtime1::new_typ..</text>
+</g>
+<g>
+<title>TypeArrayKlass::allocate_common(int, bool, Thread*) (30 samples, 11.45%)</title><rect x="1041.4" y="467.0" width="135.1" height="15" fill="#d0d03e" rx="2" ry="2"/>
+<text x="1044.4" y="478.0">TypeArrayKlass::a..</text>
+</g>
+<g>
+<title>GenCollectedHeap::mem_allocate_work(unsigned long, bool, bool*) (30 samples, 11.45%)</title><rect x="1041.4" y="451.0" width="135.1" height="15" fill="#d8d841" rx="2" ry="2"/>
+<text x="1044.4" y="462.0">GenCollectedHeap:..</text>
+</g>
+<g>
+<title>pbouda/asyncprofiler/openjdk/AllocationTracker.heapMemory (3 samples, 1.15%)</title><rect x="1176.5" y="499.0" width="13.5" height="15" fill="#5ced5c" rx="2" ry="2"/>
+<text x="1179.5" y="510.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/MethodHandleNatives.linkCallSite (1 samples, 0.38%)</title><rect x="1176.5" y="483.0" width="4.5" height="15" fill="#55e655" rx="2" ry="2"/>
+<text x="1179.5" y="494.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/MethodHandleNatives.linkCallSiteImpl (1 samples, 0.38%)</title><rect x="1176.5" y="467.0" width="4.5" height="15" fill="#6bfc6b" rx="2" ry="2"/>
+<text x="1179.5" y="478.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/CallSite.makeSite (1 samples, 0.38%)</title><rect x="1176.5" y="451.0" width="4.5" height="15" fill="#53e453" rx="2" ry="2"/>
+<text x="1179.5" y="462.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/BootstrapMethodInvoker.invoke (1 samples, 0.38%)</title><rect x="1176.5" y="435.0" width="4.5" height="15" fill="#53e453" rx="2" ry="2"/>
+<text x="1179.5" y="446.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/Invokers$Holder.invokeExact_MT (1 samples, 0.38%)</title><rect x="1176.5" y="419.0" width="4.5" height="15" fill="#5eef5e" rx="2" ry="2"/>
+<text x="1179.5" y="430.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/DelegatingMethodHandle$Holder.delegate (1 samples, 0.38%)</title><rect x="1176.5" y="403.0" width="4.5" height="15" fill="#66f766" rx="2" ry="2"/>
+<text x="1179.5" y="414.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/DirectMethodHandle$Holder.invokeStatic (1 samples, 0.38%)</title><rect x="1176.5" y="387.0" width="4.5" height="15" fill="#6dfe6d" rx="2" ry="2"/>
+<text x="1179.5" y="398.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/StringConcatFactory.makeConcatWithConstants (1 samples, 0.38%)</title><rect x="1176.5" y="371.0" width="4.5" height="15" fill="#6cfd6c" rx="2" ry="2"/>
+<text x="1179.5" y="382.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/StringConcatFactory.generateMHInlineCopy (1 samples, 0.38%)</title><rect x="1176.5" y="355.0" width="4.5" height="15" fill="#64f564" rx="2" ry="2"/>
+<text x="1179.5" y="366.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/MethodHandles.filterArgumentsWithCombiner (1 samples, 0.38%)</title><rect x="1176.5" y="339.0" width="4.5" height="15" fill="#5bec5b" rx="2" ry="2"/>
+<text x="1179.5" y="350.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/MethodHandles.argumentsWithCombiner (1 samples, 0.38%)</title><rect x="1176.5" y="323.0" width="4.5" height="15" fill="#66f766" rx="2" ry="2"/>
+<text x="1179.5" y="334.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/LambdaFormEditor.filterArgumentsForm (1 samples, 0.38%)</title><rect x="1176.5" y="307.0" width="4.5" height="15" fill="#5bec5b" rx="2" ry="2"/>
+<text x="1179.5" y="318.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/LambdaFormEditor.makeArgumentCombinationForm (1 samples, 0.38%)</title><rect x="1176.5" y="291.0" width="4.5" height="15" fill="#58e958" rx="2" ry="2"/>
+<text x="1179.5" y="302.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/LambdaFormEditor.newSpeciesData (1 samples, 0.38%)</title><rect x="1176.5" y="275.0" width="4.5" height="15" fill="#56e756" rx="2" ry="2"/>
+<text x="1179.5" y="286.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/BoundMethodHandle$SpeciesData.extendWith (1 samples, 0.38%)</title><rect x="1176.5" y="259.0" width="4.5" height="15" fill="#61f261" rx="2" ry="2"/>
+<text x="1179.5" y="270.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/ClassSpecializer.findSpecies (1 samples, 0.38%)</title><rect x="1176.5" y="243.0" width="4.5" height="15" fill="#57e857" rx="2" ry="2"/>
+<text x="1179.5" y="254.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/ClassSpecializer$Factory.loadSpecies (1 samples, 0.38%)</title><rect x="1176.5" y="227.0" width="4.5" height="15" fill="#54e554" rx="2" ry="2"/>
+<text x="1179.5" y="238.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/ClassSpecializer$Factory.linkSpeciesDataToCode (1 samples, 0.38%)</title><rect x="1176.5" y="211.0" width="4.5" height="15" fill="#65f665" rx="2" ry="2"/>
+<text x="1179.5" y="222.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/ClassSpecializer$Factory.findGetters (1 samples, 0.38%)</title><rect x="1176.5" y="195.0" width="4.5" height="15" fill="#53e453" rx="2" ry="2"/>
+<text x="1179.5" y="206.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/ClassSpecializer$Factory.findGetter (1 samples, 0.38%)</title><rect x="1176.5" y="179.0" width="4.5" height="15" fill="#67f867" rx="2" ry="2"/>
+<text x="1179.5" y="190.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/BoundMethodHandle$Specializer$Factory.chooseFieldName (1 samples, 0.38%)</title><rect x="1176.5" y="163.0" width="4.5" height="15" fill="#54e554" rx="2" ry="2"/>
+<text x="1179.5" y="174.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/ClassSpecializer$Factory.chooseFieldName (1 samples, 0.38%)</title><rect x="1176.5" y="147.0" width="4.5" height="15" fill="#66f766" rx="2" ry="2"/>
+<text x="1179.5" y="158.0"></text>
+</g>
+<g>
+<title>java/lang/StringBuilder.&lt;init&gt; (1 samples, 0.38%)</title><rect x="1176.5" y="131.0" width="4.5" height="15" fill="#52e352" rx="2" ry="2"/>
+<text x="1179.5" y="142.0"></text>
+</g>
+<g>
+<title>java/lang/AbstractStringBuilder.&lt;init&gt; (1 samples, 0.38%)</title><rect x="1176.5" y="115.0" width="4.5" height="15" fill="#6cfd6c" rx="2" ry="2"/>
+<text x="1179.5" y="126.0"></text>
+</g>
+<g>
+<title>OptoRuntime::new_array_C(Klass*, int, JavaThread*) (1 samples, 0.38%)</title><rect x="1176.5" y="99.0" width="4.5" height="15" fill="#c9c93c" rx="2" ry="2"/>
+<text x="1179.5" y="110.0"></text>
+</g>
+<g>
+<title>TypeArrayKlass::allocate_common(int, bool, Thread*) (1 samples, 0.38%)</title><rect x="1176.5" y="83.0" width="4.5" height="15" fill="#d7d741" rx="2" ry="2"/>
+<text x="1179.5" y="94.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate() const (1 samples, 0.38%)</title><rect x="1176.5" y="67.0" width="4.5" height="15" fill="#cdcd3d" rx="2" ry="2"/>
+<text x="1179.5" y="78.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate_inside_tlab_slow(MemAllocator::Allocation&amp;) const (1 samples, 0.38%)</title><rect x="1176.5" y="51.0" width="4.5" height="15" fill="#cfcf3e" rx="2" ry="2"/>
+<text x="1179.5" y="62.0"></text>
+</g>
+<g>
+<title>GenCollectedHeap::mem_allocate_work(unsigned long, bool, bool*) (1 samples, 0.38%)</title><rect x="1176.5" y="35.0" width="4.5" height="15" fill="#dfdf43" rx="2" ry="2"/>
+<text x="1179.5" y="46.0"></text>
+</g>
+<g>
+<title>java/lang/management/ManagementFactory.getMemoryMXBean (2 samples, 0.76%)</title><rect x="1181.0" y="483.0" width="9.0" height="15" fill="#65f665" rx="2" ry="2"/>
+<text x="1184.0" y="494.0"></text>
+</g>
+<g>
+<title>java/lang/management/ManagementFactory.getPlatformMXBean (2 samples, 0.76%)</title><rect x="1181.0" y="467.0" width="9.0" height="15" fill="#63f463" rx="2" ry="2"/>
+<text x="1184.0" y="478.0"></text>
+</g>
+<g>
+<title>java/lang/management/ManagementFactory$PlatformMBeanFinder.&lt;clinit&gt; (1 samples, 0.38%)</title><rect x="1181.0" y="451.0" width="4.5" height="15" fill="#6dfe6d" rx="2" ry="2"/>
+<text x="1184.0" y="462.0"></text>
+</g>
+<g>
+<title>java/util/stream/Collectors.toMap (1 samples, 0.38%)</title><rect x="1181.0" y="435.0" width="4.5" height="15" fill="#63f463" rx="2" ry="2"/>
+<text x="1184.0" y="446.0"></text>
+</g>
+<g>
+<title>java/util/stream/Collectors.toMap (1 samples, 0.38%)</title><rect x="1181.0" y="419.0" width="4.5" height="15" fill="#66f766" rx="2" ry="2"/>
+<text x="1184.0" y="430.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/MethodHandleNatives.linkCallSite (1 samples, 0.38%)</title><rect x="1181.0" y="403.0" width="4.5" height="15" fill="#52e352" rx="2" ry="2"/>
+<text x="1184.0" y="414.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/MethodHandleNatives.linkCallSiteImpl (1 samples, 0.38%)</title><rect x="1181.0" y="387.0" width="4.5" height="15" fill="#54e554" rx="2" ry="2"/>
+<text x="1184.0" y="398.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/CallSite.makeSite (1 samples, 0.38%)</title><rect x="1181.0" y="371.0" width="4.5" height="15" fill="#5ff05f" rx="2" ry="2"/>
+<text x="1184.0" y="382.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/BootstrapMethodInvoker.invoke (1 samples, 0.38%)</title><rect x="1181.0" y="355.0" width="4.5" height="15" fill="#52e352" rx="2" ry="2"/>
+<text x="1184.0" y="366.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/Invokers$Holder.invokeExact_MT (1 samples, 0.38%)</title><rect x="1181.0" y="339.0" width="4.5" height="15" fill="#52e352" rx="2" ry="2"/>
+<text x="1184.0" y="350.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/DirectMethodHandle$Holder.invokeStatic (1 samples, 0.38%)</title><rect x="1181.0" y="323.0" width="4.5" height="15" fill="#56e756" rx="2" ry="2"/>
+<text x="1184.0" y="334.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/LambdaMetafactory.metafactory (1 samples, 0.38%)</title><rect x="1181.0" y="307.0" width="4.5" height="15" fill="#5dee5d" rx="2" ry="2"/>
+<text x="1184.0" y="318.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/InnerClassLambdaMetafactory.buildCallSite (1 samples, 0.38%)</title><rect x="1181.0" y="291.0" width="4.5" height="15" fill="#68f968" rx="2" ry="2"/>
+<text x="1184.0" y="302.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/InnerClassLambdaMetafactory.spinInnerClass (1 samples, 0.38%)</title><rect x="1181.0" y="275.0" width="4.5" height="15" fill="#61f261" rx="2" ry="2"/>
+<text x="1184.0" y="286.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/InnerClassLambdaMetafactory.generateInnerClass (1 samples, 0.38%)</title><rect x="1181.0" y="259.0" width="4.5" height="15" fill="#66f766" rx="2" ry="2"/>
+<text x="1184.0" y="270.0"></text>
+</g>
+<g>
+<title>java/lang/invoke/MethodHandles$Lookup.defineHiddenClass (1 samples, 0.38%)</title><rect x="1181.0" y="243.0" width="4.5" height="15" fill="#51e251" rx="2" ry="2"/>
+<text x="1184.0" y="254.0"></text>
+</g>
+<g>
+<title>java/lang/Object.clone (1 samples, 0.38%)</title><rect x="1181.0" y="227.0" width="4.5" height="15" fill="#54e554" rx="2" ry="2"/>
+<text x="1184.0" y="238.0"></text>
+</g>
+<g>
+<title>JVM_Clone (1 samples, 0.38%)</title><rect x="1181.0" y="211.0" width="4.5" height="15" fill="#fe8181" rx="2" ry="2"/>
+<text x="1184.0" y="222.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate() const (1 samples, 0.38%)</title><rect x="1181.0" y="195.0" width="4.5" height="15" fill="#cece3e" rx="2" ry="2"/>
+<text x="1184.0" y="206.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate_inside_tlab_slow(MemAllocator::Allocation&amp;) const (1 samples, 0.38%)</title><rect x="1181.0" y="179.0" width="4.5" height="15" fill="#e2e244" rx="2" ry="2"/>
+<text x="1184.0" y="190.0"></text>
+</g>
+<g>
+<title>GenCollectedHeap::mem_allocate_work(unsigned long, bool, bool*) (1 samples, 0.38%)</title><rect x="1181.0" y="163.0" width="4.5" height="15" fill="#cbcb3d" rx="2" ry="2"/>
+<text x="1184.0" y="174.0"></text>
+</g>
+<g>
+<title>sun/management/spi/PlatformMBeanProvider$PlatformComponent.getMBeans (1 samples, 0.38%)</title><rect x="1185.5" y="451.0" width="4.5" height="15" fill="#6dfe6d" rx="2" ry="2"/>
+<text x="1188.5" y="462.0"></text>
+</g>
+<g>
+<title>java/lang/management/DefaultPlatformMBeanProvider$3.nameToMBeanMap (1 samples, 0.38%)</title><rect x="1185.5" y="435.0" width="4.5" height="15" fill="#51e251" rx="2" ry="2"/>
+<text x="1188.5" y="446.0"></text>
+</g>
+<g>
+<title>java/util/Collections.singletonMap (1 samples, 0.38%)</title><rect x="1185.5" y="419.0" width="4.5" height="15" fill="#6afb6a" rx="2" ry="2"/>
+<text x="1188.5" y="430.0"></text>
+</g>
+<g>
+<title>InterpreterRuntime::_new(JavaThread*, ConstantPool*, int) (1 samples, 0.38%)</title><rect x="1185.5" y="403.0" width="4.5" height="15" fill="#caca3c" rx="2" ry="2"/>
+<text x="1188.5" y="414.0"></text>
+</g>
+<g>
+<title>InstanceKlass::allocate_instance(Thread*) (1 samples, 0.38%)</title><rect x="1185.5" y="387.0" width="4.5" height="15" fill="#c8c83c" rx="2" ry="2"/>
+<text x="1188.5" y="398.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate() const (1 samples, 0.38%)</title><rect x="1185.5" y="371.0" width="4.5" height="15" fill="#e3e345" rx="2" ry="2"/>
+<text x="1188.5" y="382.0"></text>
+</g>
+<g>
+<title>MemAllocator::allocate_inside_tlab_slow(MemAllocator::Allocation&amp;) const (1 samples, 0.38%)</title><rect x="1185.5" y="355.0" width="4.5" height="15" fill="#d9d941" rx="2" ry="2"/>
+<text x="1188.5" y="366.0"></text>
+</g>
+<g>
+<title>GenCollectedHeap::mem_allocate_work(unsigned long, bool, bool*) (1 samples, 0.38%)</title><rect x="1185.5" y="339.0" width="4.5" height="15" fill="#cdcd3d" rx="2" ry="2"/>
+<text x="1188.5" y="350.0"></text>
+</g>
+</g>
+</svg>
