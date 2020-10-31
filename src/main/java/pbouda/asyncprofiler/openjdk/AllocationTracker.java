@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class AllocationTracker {
 
@@ -38,12 +40,19 @@ public class AllocationTracker {
         // otherwise we won't be able to dump data for AsyncProfiler
         //
         // CTRL-C before it reaches the end, otherwise, we see DestroyVM thread instead of Main
-        for (int i = 0; true; i++) {
-            String allocated = LONG_TEXT.repeat(i);
-            System.out.println("ALLOCATED " + allocated.length());
-            heapMemory();
-            Thread.sleep(50);
-        }
+
+        ExecutorService executor = Executors.newFixedThreadPool(3);
+        Runnable allocation = () -> {
+            for (int i = 0; true; i++) {
+                String allocated = LONG_TEXT.repeat(i);
+                System.out.println("ALLOCATED " + allocated.length());
+                heapMemory();
+            }
+        };
+        
+        executor.submit(allocation);
+        executor.submit(allocation);
+        executor.submit(allocation);
     }
 
     public static long heapMemory() {

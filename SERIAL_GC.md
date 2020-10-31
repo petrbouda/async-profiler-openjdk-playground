@@ -22,24 +22,10 @@ docker exec -ti serial profiler.sh -t -e GCMemoryManager::gc_begin -f /tmp/async
 
 ![SERIAL_GC_BEGIN](serial_gc_begin.svg)
 
-### New TLAB Allocation
+### GC Collect
 
 ```
-// ... same as before
-
-docker exec -ti epsilon profiler.sh -t -e EpsilonHeap::allocate_new_tlab -f /tmp/asyncprofiler/epsilon_new_tlab.svg 1
+docker exec -ti epsilon profiler.sh -t -e DefNewGeneration::collect -f /tmp/asyncprofiler/serial-collect.svg 1
 ```
 
-![EPSILON_NEW_TLAB](epsilon_new_tlab.svg)
-
-### Allocation Without TLAB
-- add `-XX:-UseTLAB`
-
-```
-docker run --rm -it --name epsilon --security-opt seccomp=unconfined \
--v /tmp/asyncprofiler:/tmp/asyncprofiler openjdk-15-dbg-asyncprofiler:latest java -Xmx256m -Xms50m -XX:-UseTLAB -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC /tmp/asyncprofiler/AllocationTracker.java
-
-docker exec -ti epsilon profiler.sh -t -e EpsilonHeap::allocate_work -f /tmp/asyncprofiler/epsilon_without_tlab.svg 1
-```
-
-![EPSILON_WITHOUT_TLAB](epsilon_without_tlab.svg)
+![SERIAL_COLLECT](serial_collect.svg)
