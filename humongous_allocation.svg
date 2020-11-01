@@ -1,6 +1,6 @@
 <?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg version="1.1" width="1200" height="278" onload="init(evt)" viewBox="0 0 1200 278" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg version="1.1" width="1200" height="374" onload="init(evt)" viewBox="0 0 1200 374" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <style type="text/css">
 	text { font-family:Verdana; font-size:12px; fill:rgb(0,0,0); }
 	#search { opacity:0.1; cursor:pointer; }
@@ -328,61 +328,85 @@
 </script>
 <rect x="0" y="0" width="100%" height="100%" fill="rgb(240,240,220)"/>
 <text id="title" x="600" y="24">Flame Graph</text>
-<text id="details" x="10" y="261"> </text>
+<text id="details" x="10" y="357"> </text>
 <text id="unzoom" x="10" y="24" class="hide">Reset Zoom</text>
 <text id="search" x="1090" y="24">Search</text>
-<text id="matched" x="1090" y="261"> </text>
+<text id="matched" x="1090" y="357"> </text>
 <g id="frames">
 <g>
-<title>all (125 samples, 100.00%)</title><rect x="10.0" y="227.0" width="1180.0" height="15" fill="#fa7b7b" rx="2" ry="2"/>
-<text x="13.0" y="238.0">all</text>
+<title>all (177 samples, 100.00%)</title><rect x="10.0" y="323.0" width="1180.0" height="15" fill="#fa7b7b" rx="2" ry="2"/>
+<text x="13.0" y="334.0">all</text>
 </g>
 <g>
-<title>com/sun/tools/javac/launcher/Main.main (125 samples, 100.00%)</title><rect x="10.0" y="211.0" width="1180.0" height="15" fill="#5bec5b" rx="2" ry="2"/>
-<text x="13.0" y="222.0">com/sun/tools/javac/launcher/Main.main</text>
+<title>com/sun/tools/javac/launcher/Main.main (177 samples, 100.00%)</title><rect x="10.0" y="307.0" width="1180.0" height="15" fill="#5bec5b" rx="2" ry="2"/>
+<text x="13.0" y="318.0">com/sun/tools/javac/launcher/Main.main</text>
 </g>
 <g>
-<title>com/sun/tools/javac/launcher/Main.run (125 samples, 100.00%)</title><rect x="10.0" y="195.0" width="1180.0" height="15" fill="#67f867" rx="2" ry="2"/>
-<text x="13.0" y="206.0">com/sun/tools/javac/launcher/Main.run</text>
+<title>com/sun/tools/javac/launcher/Main.run (177 samples, 100.00%)</title><rect x="10.0" y="291.0" width="1180.0" height="15" fill="#67f867" rx="2" ry="2"/>
+<text x="13.0" y="302.0">com/sun/tools/javac/launcher/Main.run</text>
 </g>
 <g>
-<title>com/sun/tools/javac/launcher/Main.execute (125 samples, 100.00%)</title><rect x="10.0" y="179.0" width="1180.0" height="15" fill="#67f867" rx="2" ry="2"/>
-<text x="13.0" y="190.0">com/sun/tools/javac/launcher/Main.execute</text>
+<title>com/sun/tools/javac/launcher/Main.execute (177 samples, 100.00%)</title><rect x="10.0" y="275.0" width="1180.0" height="15" fill="#67f867" rx="2" ry="2"/>
+<text x="13.0" y="286.0">com/sun/tools/javac/launcher/Main.execute</text>
 </g>
 <g>
-<title>java/lang/reflect/Method.invoke (125 samples, 100.00%)</title><rect x="10.0" y="163.0" width="1180.0" height="15" fill="#6bfc6b" rx="2" ry="2"/>
-<text x="13.0" y="174.0">java/lang/reflect/Method.invoke</text>
+<title>java/lang/reflect/Method.invoke (177 samples, 100.00%)</title><rect x="10.0" y="259.0" width="1180.0" height="15" fill="#6bfc6b" rx="2" ry="2"/>
+<text x="13.0" y="270.0">java/lang/reflect/Method.invoke</text>
 </g>
 <g>
-<title>jdk/internal/reflect/DelegatingMethodAccessorImpl.invoke (125 samples, 100.00%)</title><rect x="10.0" y="147.0" width="1180.0" height="15" fill="#55e655" rx="2" ry="2"/>
-<text x="13.0" y="158.0">jdk/internal/reflect/DelegatingMethodAccessorImpl.invoke</text>
+<title>jdk/internal/reflect/DelegatingMethodAccessorImpl.invoke (177 samples, 100.00%)</title><rect x="10.0" y="243.0" width="1180.0" height="15" fill="#55e655" rx="2" ry="2"/>
+<text x="13.0" y="254.0">jdk/internal/reflect/DelegatingMethodAccessorImpl.invoke</text>
 </g>
 <g>
-<title>jdk/internal/reflect/NativeMethodAccessorImpl.invoke (125 samples, 100.00%)</title><rect x="10.0" y="131.0" width="1180.0" height="15" fill="#5aeb5a" rx="2" ry="2"/>
-<text x="13.0" y="142.0">jdk/internal/reflect/NativeMethodAccessorImpl.invoke</text>
+<title>jdk/internal/reflect/NativeMethodAccessorImpl.invoke (177 samples, 100.00%)</title><rect x="10.0" y="227.0" width="1180.0" height="15" fill="#5aeb5a" rx="2" ry="2"/>
+<text x="13.0" y="238.0">jdk/internal/reflect/NativeMethodAccessorImpl.invoke</text>
 </g>
 <g>
-<title>jdk/internal/reflect/NativeMethodAccessorImpl.invoke0 (125 samples, 100.00%)</title><rect x="10.0" y="115.0" width="1180.0" height="15" fill="#67f867" rx="2" ry="2"/>
-<text x="13.0" y="126.0">jdk/internal/reflect/NativeMethodAccessorImpl.invoke0</text>
+<title>jdk/internal/reflect/NativeMethodAccessorImpl.invoke0 (177 samples, 100.00%)</title><rect x="10.0" y="211.0" width="1180.0" height="15" fill="#67f867" rx="2" ry="2"/>
+<text x="13.0" y="222.0">jdk/internal/reflect/NativeMethodAccessorImpl.invoke0</text>
 </g>
 <g>
-<title>pbouda/asyncprofiler/openjdk/HumongousAllocator.main (125 samples, 100.00%)</title><rect x="10.0" y="99.0" width="1180.0" height="15" fill="#58e958" rx="2" ry="2"/>
-<text x="13.0" y="110.0">pbouda/asyncprofiler/openjdk/HumongousAllocator.main</text>
+<title>pbouda/asyncprofiler/openjdk/HumongousAllocator.main (177 samples, 100.00%)</title><rect x="10.0" y="195.0" width="1180.0" height="15" fill="#58e958" rx="2" ry="2"/>
+<text x="13.0" y="206.0">pbouda/asyncprofiler/openjdk/HumongousAllocator.main</text>
 </g>
 <g>
-<title>InterpreterRuntime::newarray(JavaThread*, BasicType, int) (125 samples, 100.00%)</title><rect x="10.0" y="83.0" width="1180.0" height="15" fill="#d8d841" rx="2" ry="2"/>
-<text x="13.0" y="94.0">InterpreterRuntime::newarray(JavaThread*, BasicType, int)</text>
+<title>InterpreterRuntime::newarray(JavaThread*, BasicType, int) (177 samples, 100.00%)</title><rect x="10.0" y="179.0" width="1180.0" height="15" fill="#d8d841" rx="2" ry="2"/>
+<text x="13.0" y="190.0">InterpreterRuntime::newarray(JavaThread*, BasicType, int)</text>
 </g>
 <g>
-<title>TypeArrayKlass::allocate_common(int, bool, Thread*) (125 samples, 100.00%)</title><rect x="10.0" y="67.0" width="1180.0" height="15" fill="#d6d640" rx="2" ry="2"/>
-<text x="13.0" y="78.0">TypeArrayKlass::allocate_common(int, bool, Thread*)</text>
+<title>oopFactory::new_typeArray(BasicType, int, Thread*) (177 samples, 100.00%)</title><rect x="10.0" y="163.0" width="1180.0" height="15" fill="#d6d640" rx="2" ry="2"/>
+<text x="13.0" y="174.0">oopFactory::new_typeArray(BasicType, int, Thread*)</text>
 </g>
 <g>
-<title>MemAllocator::allocate() const (125 samples, 100.00%)</title><rect x="10.0" y="51.0" width="1180.0" height="15" fill="#dada42" rx="2" ry="2"/>
-<text x="13.0" y="62.0">MemAllocator::allocate() const</text>
+<title>TypeArrayKlass::allocate(int, Thread*) (177 samples, 100.00%)</title><rect x="10.0" y="147.0" width="1180.0" height="15" fill="#dada42" rx="2" ry="2"/>
+<text x="13.0" y="158.0">TypeArrayKlass::allocate(int, Thread*)</text>
 </g>
 <g>
-<title>G1CollectedHeap::humongous_obj_allocate(unsigned long) (125 samples, 100.00%)</title><rect x="10.0" y="35.0" width="1180.0" height="15" fill="#d2d23f" rx="2" ry="2"/>
+<title>TypeArrayKlass::allocate_common(int, bool, Thread*) (177 samples, 100.00%)</title><rect x="10.0" y="131.0" width="1180.0" height="15" fill="#d2d23f" rx="2" ry="2"/>
+<text x="13.0" y="142.0">TypeArrayKlass::allocate_common(int, bool, Thread*)</text>
+</g>
+<g>
+<title>CollectedHeap::array_allocate(Klass*, int, int, bool, Thread*) (177 samples, 100.00%)</title><rect x="10.0" y="115.0" width="1180.0" height="15" fill="#d7d741" rx="2" ry="2"/>
+<text x="13.0" y="126.0">CollectedHeap::array_allocate(Klass*, int, int, bool, Thread*)</text>
+</g>
+<g>
+<title>MemAllocator::allocate() const (177 samples, 100.00%)</title><rect x="10.0" y="99.0" width="1180.0" height="15" fill="#e4e445" rx="2" ry="2"/>
+<text x="13.0" y="110.0">MemAllocator::allocate() const</text>
+</g>
+<g>
+<title>MemAllocator::mem_allocate(MemAllocator::Allocation&amp;) const (177 samples, 100.00%)</title><rect x="10.0" y="83.0" width="1180.0" height="15" fill="#e3e345" rx="2" ry="2"/>
+<text x="13.0" y="94.0">MemAllocator::mem_allocate(MemAllocator::Allocation&amp;) const</text>
+</g>
+<g>
+<title>MemAllocator::allocate_outside_tlab(MemAllocator::Allocation&amp;) const (177 samples, 100.00%)</title><rect x="10.0" y="67.0" width="1180.0" height="15" fill="#dbdb42" rx="2" ry="2"/>
+<text x="13.0" y="78.0">MemAllocator::allocate_outside_tlab(MemAllocator::Allocation&amp;) const</text>
+</g>
+<g>
+<title>G1CollectedHeap::mem_allocate(unsigned long, bool*) (177 samples, 100.00%)</title><rect x="10.0" y="51.0" width="1180.0" height="15" fill="#dddd43" rx="2" ry="2"/>
+<text x="13.0" y="62.0">G1CollectedHeap::mem_allocate(unsigned long, bool*)</text>
+</g>
+<g>
+<title>G1CollectedHeap::humongous_obj_allocate(unsigned long) (177 samples, 100.00%)</title><rect x="10.0" y="35.0" width="1180.0" height="15" fill="#cccc3d" rx="2" ry="2"/>
 <text x="13.0" y="46.0">G1CollectedHeap::humongous_obj_allocate(unsigned long)</text>
 </g>
 </g>
