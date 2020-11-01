@@ -6,6 +6,8 @@
 - install: `sudo apt get openjdk-15-jdk openjdk-15-dbg openjdk-15-source openjdk-15-doc`
 - However, the best option is to build your own OpenJDK (`slowdebug` - no optimizations, no missing methods in Flamegraps), https://github.com/openjdk/jdk
 
+- Simple check: `gdb $JAVA_HOME/lib/server/libjvm.so -ex 'info address UseG1GC'`
+
 ### IDE Setup
 
 - [CLion](https://blog.jetbrains.com/clion/2020/03/openjdk-with-clion/)
