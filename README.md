@@ -86,10 +86,23 @@ kernel.perf_event_paranoid=-1
 kernel.kptr_restrict=0
 ```
 
+- If changing the configuration is not possible, you may fall back to `-e itimer` profiling mode. 
+It is similar to cpu mode, but does not require perf_events support. 
+As a drawback, there will be no kernel stack traces.
+
 - start the process with the options below if we want to get rid of some problems with inlined frames
 
 ```
 -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints
+
+
+When agent is not loaded at JVM startup (by using -agentpath option) it is highly recommended 
+to use -XX:+UnlockDiagnosticVMOptions -XX:+DebugNonSafepoints JVM flags. Without those flags 
+the profiler will still work correctly but results might be less accurate e.g. 
+without -XX:+DebugNonSafepoints there is a high chance that simple inlined methods 
+will not appear in the profile. When agent is attached at runtime 
+CompiledMethodLoad JVMTI event enables debug info, but only for methods compiled 
+after the event is turned on.
 ```
 
 ### Humongous Allocation Tracker
