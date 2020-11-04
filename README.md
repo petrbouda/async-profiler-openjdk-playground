@@ -37,6 +37,55 @@ sudo sh -c 'echo 1 >/proc/sys/kernel/perf_event_paranoid'
 sudo sh -c 'echo 0 >/proc/sys/kernel/kptr_restrict'
 ```
 
+```
+==============================================================
+perf_event_paranoid:
+
+Controls use of the performance events system by unprivileged
+users (without CAP_SYS_ADMIN).  The default value is 2.
+
+ -1: Allow use of (almost) all events by all users
+     Ignore mlock limit after perf_event_mlock_kb without CAP_IPC_LOCK
+>=0: Disallow ftrace function tracepoint by users without CAP_SYS_ADMIN
+     Disallow raw tracepoint access by users without CAP_SYS_ADMIN
+>=1: Disallow CPU event access by users without CAP_SYS_ADMIN
+>=2: Disallow kernel profiling by users without CAP_SYS_ADMIN
+==============================================================
+
+==============================================================
+kptr_restrict:
+
+This toggle indicates whether restrictions are placed on
+exposing kernel addresses via /proc and other interfaces.
+
+When kptr_restrict is set to 0 (the default) the address is hashed before
+printing. (This is the equivalent to %p.)
+
+When kptr_restrict is set to (1), kernel pointers printed using the %pK
+format specifier will be replaced with 0's unless the user has CAP_SYSLOG
+and effective user and group ids are equal to the real ids. This is
+because %pK checks are done at read() time rather than open() time, so
+if permissions are elevated between the open() and the read() (e.g via
+a setuid binary) then %pK will not leak kernel pointers to unprivileged
+users. Note, this is a temporary solution only. The correct long-term
+solution is to do the permission checks at open() time. Consider removing
+world read permissions from files that use %pK, and using dmesg_restrict
+to protect against uses of %pK in dmesg(8) if leaking kernel pointer
+values to unprivileged users is a concern.
+
+When kptr_restrict is set to (2), kernel pointers printed using
+%pK will be replaced with 0's regardless of privileges.
+==============================================================
+```
+
+- a permanent solution (settings before will disappear after a restart)
+- create file `/etc/sysctl.d/99-async-profiler.conf` with the content
+
+```
+kernel.perf_event_paranoid=-1
+kernel.kptr_restrict=0
+```
+
 - start the process with the options below if we want to get rid of some problems with inlined frames
 
 ```
