@@ -4,7 +4,9 @@
 
 - C++ Symbols - [Name Mangling](https://en.wikipedia.org/wiki/Name_mangling)
 - Docker Image with Debug symbols - https://github.com/petrbouda/openjdk-x-dbg-asyncprofiler
-- or Install `openjdk-15-dbg` add a repository `deb http://archive.ubuntu.com/ubuntu groovy main restricted universe multiverse` into `/etc/apt/sources.list.d/official-package-repositories.list` 
+- or Install `openjdk-15-dbg` add a repository into `/etc/apt/sources.list.d/official-package-repositories.list` 
+ - Ubuntu: `deb http://archive.ubuntu.com/ubuntu groovy main restricted universe multiverse`
+ - Mint: `deb http://packages.linuxmint.com ulyssa main upstream import backport #id:linuxmint_main`
 - install: `sudo apt get openjdk-15-jdk openjdk-15-dbg openjdk-15-source openjdk-15-doc`
 - However, the best option is to build your own OpenJDK (`slowdebug` - no optimizations, no missing methods in Flamegraps), https://github.com/openjdk/jdk
 
